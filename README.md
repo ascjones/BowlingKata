@@ -7,7 +7,7 @@ He'd been to the Idris talk about dependent types (which I missed), but anyway I
 
 Here's the model I ended up with:
 
-'''
+```
 type Game =
     { F1 : Frame; F2 : Frame; F3 : Frame; F4 : Frame; F5 : Frame; F6 : Frame; F7 : Frame; F8 : Frame; F9 : Frame; F10 : FinalFrame } 
 
@@ -43,5 +43,5 @@ and PinCombo =
     | P4_1 | P4_2 | P4_3 | P4_4 | P4_5 | P5_0 | P5_1
     | P5_2 | P5_3 | P5_4 | P6_0 | P6_1 | P6_2 | P6_3
     | P7_0 | P7_1 | P7_2 | P8_0 | P8_1 | P9_0
-'''
+```
 
