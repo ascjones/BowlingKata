@@ -3,7 +3,7 @@
 // THE MODEL represents only allowed states
 // ========================================
 type Game =
-    { F1 : Frame; F2 : Frame; F3 : Frame; F4 : Frame; F5 : Frame; F6 : Frame; F7 : Frame; F8 : Frame; F9 : Frame; F10 : FinalFrame } // todo: add extra frames, and FinalFrame type?
+    { F1 : Frame; F2 : Frame; F3 : Frame; F4 : Frame; F5 : Frame; F6 : Frame; F7 : Frame; F8 : Frame; F9 : Frame; F10 : FinalFrame } 
 
 and Frame = 
     | Strike
@@ -12,17 +12,22 @@ and Frame =
 
 // Separate type for final frame because it is special, e.g. only have bonus rolls when it's a strike
 and FinalFrame =
-    | Strike of BonusRolls
-    | Spare of PinCount
+    | Strike of StrikeBonusRolls
+    | Spare of PinCount * SpareBonusRoll
     | Pins of PinCombo
 
-and BonusRolls = 
+and StrikeBonusRolls = 
     | TwoStrikes
     | BonusSpare
     | BonusPins of PinCombo
 
+and SpareBonusRoll = 
+    | BonusPins of PinCount
+    | BonusStrike
+
 and PinCount = P0 | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9
 
+// All the allowable combinations of pins that are not spares
 and PinCombo = 
     | P0_0 | P0_1 | P0_2 | P0_3 | P0_4 | P0_5 | P0_6
     | P0_7 | P0_8 | P0_9 | P1_0 | P1_1 | P1_2 | P1_3
@@ -39,7 +44,7 @@ and PinCombo =
 //        for x in [0..9] do
 //            for y in [0..9] do
 //                if x + y < 10 then
-//                    yield sprintf "| P%i_%i -> (P%i,P%i)" x y x y
+//                    yield sprintf "| (P%i,P%i) -> P%i_%i" x y x y
 //    } |> Seq.toList
 
 // SCORING the game
@@ -101,7 +106,6 @@ let score game =
         newScore,prevFrame,(Some frame)
 
     let scoreFinalFrame (score,prev2Frame,prevFrame) frame =
-        // todo: deal with 
         let normalFrame,bonus = 
             match frame with
             | FinalFrame.Strike bonusRolls -> 
@@ -109,10 +113,14 @@ let score game =
                     match bonusRolls with
                     | TwoStrikes -> 20
                     | BonusSpare -> 10
-                    | BonusPins combo -> combo |> comboSum
+                    | StrikeBonusRolls.BonusPins combo -> combo |> comboSum
                 Frame.Strike,strikeBonus
-            | FinalFrame.Spare pinCount ->
-                Frame.Spare(pinCount),10
+            | FinalFrame.Spare (p,bonusRoll) ->
+                let spareBonus = 
+                    match bonusRoll with
+                    | SpareBonusRoll.BonusPins b -> b |> pins
+                    | SpareBonusRoll.BonusStrike -> 10
+                Frame.Spare(p),spareBonus
             | FinalFrame.Pins combo ->
                 Frame.Pins(combo),0
         
@@ -133,26 +141,56 @@ let (|StrikeChar|SpareChar|PinsChar|) (c : char) =
     | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' -> PinsChar (Int32.Parse <| string c) 
     | x -> failwithf "Expected 'X' or '/' or '1-9', found %c" x // todo should this be in active pattern?
 
-let toPinCount pins = match pins with 0 -> P0 | 1 -> P1 | 2 -> P2 | 3 -> P3 | 4 -> P4 | 5 -> P5 | 6 -> P6 | 7 -> P7 | 8 -> P8 | 9 -> P9 | x -> failwithf "Expected 1-9 pins"
+let toPinCount pins = match pins with 0 -> P0 | 1 -> P1 | 2 -> P2 | 3 -> P3 | 4 -> P4 | 5 -> P5 | 6 -> P6 | 7 -> P7 | 8 -> P8 | 9 -> P9 | x -> failwithf "Expected 1-9 pins, sctual %i" x
+
+let toPinCombo p1 p2 = 
+   let pins = (p1 |> toPinCount, p2 |> toPinCount)
+   match pins with
+   | (P0,P0) -> P0_0 | (P0,P1) -> P0_1 | (P0,P2) -> P0_2
+   | (P0,P3) -> P0_3 | (P0,P4) -> P0_4 | (P0,P5) -> P0_5
+   | (P0,P6) -> P0_6 | (P0,P7) -> P0_7 | (P0,P8) -> P0_8
+   | (P0,P9) -> P0_9 | (P1,P0) -> P1_0 | (P1,P1) -> P1_1
+   | (P1,P2) -> P1_2 | (P1,P3) -> P1_3 | (P1,P4) -> P1_4
+   | (P1,P5) -> P1_5 | (P1,P6) -> P1_6 | (P1,P7) -> P1_7
+   | (P1,P8) -> P1_8 | (P2,P0) -> P2_0 | (P2,P1) -> P2_1
+   | (P2,P2) -> P2_2 | (P2,P3) -> P2_3 | (P2,P4) -> P2_4
+   | (P2,P5) -> P2_5 | (P2,P6) -> P2_6 | (P2,P7) -> P2_7
+   | (P3,P0) -> P3_0 | (P3,P1) -> P3_1 | (P3,P2) -> P3_2
+   | (P3,P3) -> P3_3 | (P3,P4) -> P3_4 | (P3,P5) -> P3_5
+   | (P3,P6) -> P3_6 | (P4,P0) -> P4_0 | (P4,P1) -> P4_1
+   | (P4,P2) -> P4_2 | (P4,P3) -> P4_3 | (P4,P4) -> P4_4
+   | (P4,P5) -> P4_5 | (P5,P0) -> P5_0 | (P5,P1) -> P5_1
+   | (P5,P2) -> P5_2 | (P5,P3) -> P5_3 | (P5,P4) -> P5_4
+   | (P6,P0) -> P6_0 | (P6,P1) -> P6_1 | (P6,P2) -> P6_2
+   | (P6,P3) -> P6_3 | (P7,P0) -> P7_0 | (P7,P1) -> P7_1
+   | (P7,P2) -> P7_2 | (P8,P0) -> P8_0 | (P8,P1) -> P8_1
+   | (P9,P0) -> P9_0
+   | x -> failwithf "Invalid pin combo %A" x
 
 let parseGame (game : string) =
     let scores = game.ToCharArray()
     let getFrame i =
         match scores.[i] with
-        | StrikeChar -> Strike,i+1
+        | StrikeChar -> Frame.Strike,i+1
         | PinsChar p1 ->
             match scores.[i + 1] with
-            | PinsChar p2 -> Pins (p1 |> toPinCount, p2 |> toPinCount), i+2
-            | SpareChar -> Spare (p1 |> toPinCount), i+2
-            | StrikeChar -> failwithf "Cannot throw a strike with the second ball"
-        | SpareChar -> failwithf "Cannot throw a spare with the first ball"
+            | PinsChar p2 -> 
+                let combo = toPinCombo p1 p2
+                Frame.Pins(combo), i+2
+            | SpareChar -> Frame.Spare (p1 |> toPinCount), i+2
+            | StrikeChar -> failwith "Cannot throw a strike with the second ball"
+        | SpareChar -> failwith "Cannot throw a spare with the first ball"
 
     let getFinalFrame i =
         let remaining = scores |> Seq.skip (i+1) |> Seq.toList
         match remaining with
-        | [StrikeChar; StrikeChar; StrikeChar] -> AllStrikes
-        | [StrikeChar; PinsChar(p1); PinsChar(p2)] -> StrikeAndBonus((p1 |> toPinCount), (p2 |> toPinCount))
-        | []
+        | [StrikeChar;   StrikeChar;   StrikeChar]       -> FinalFrame.Strike(StrikeBonusRolls.TwoStrikes)
+        | [StrikeChar;   PinsChar(_);  SpareChar]        -> FinalFrame.Strike(StrikeBonusRolls.BonusSpare)
+        | [StrikeChar;   PinsChar(p1); PinsChar(p2)]     -> FinalFrame.Strike(StrikeBonusRolls.BonusPins(toPinCombo p1 p2))
+        | [PinsChar(p);  SpareChar;    PinsChar(bonus)]  -> FinalFrame.Spare(p |> toPinCount, SpareBonusRoll.BonusPins(bonus |> toPinCount))
+        | [PinsChar(p);  SpareChar;    StrikeChar]       -> FinalFrame.Spare(p |> toPinCount, SpareBonusRoll.BonusStrike)
+        | [PinsChar(p1); PinsChar(p2)]                   -> FinalFrame.Pins(toPinCombo p1 p2)
+        | x                                              -> failwithf "Invalid final frame rolls: %A" x
         
     let f1,p2 = getFrame 0
     let f2,p3 = getFrame p2
@@ -163,7 +201,7 @@ let parseGame (game : string) =
     let f7,p8 = getFrame p7
     let f8,p9 = getFrame p8
     let f9,p10 = getFrame p9
-    let f10,_ = getFrame p10
+    let f10 = getFinalFrame p10
 
     { F1 = f1; F2 = f2; F3 = f3; F4 = f4; F5 = f5; F6 = f6; F7 = f7; F8 = f8; F9 = f9; F10 = f10 }
 
