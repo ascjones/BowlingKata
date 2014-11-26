@@ -122,7 +122,7 @@ let score game =
                     match bonusRoll with
                     | SpareBonusRoll.BonusPins b -> b |> pins
                     | SpareBonusRoll.BonusStrike -> 10
-                Frame.Spare(p),10 + spareBonus
+                Frame.Spare(p),spareBonus
             | FinalFrame.Pins combo ->
                 Frame.Pins(combo),0
         
@@ -140,6 +140,7 @@ let (|StrikeChar|SpareChar|PinsChar|) (c : char) =
     match c with
     | 'X' -> StrikeChar
     | '/' -> SpareChar
+    | '-' -> PinsChar 0
     | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' -> PinsChar (Int32.Parse <| string c) 
     | x -> failwithf "Expected 'X' or '/' or '1-9', found %c" x // todo should this be in active pattern?
 

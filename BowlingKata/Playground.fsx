@@ -12,7 +12,9 @@ let test game expectedScore =
     else printfn "FAILURE! %s: Expected %i, Actual %i" game expectedScore actualScore
 
 test "54545454545454545454" 90
-test "XXXXXXXXXXXXX" 300
+test "XXXXXXXXXXXX" 300
+test "5/5/5/5/5/5/5/5/5/5/5" 150
+test "9-9-9-9-9-9-9-9-9-9-" 90
     
     
 
