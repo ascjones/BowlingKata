@@ -47,8 +47,9 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SuperStronglyTyped.fs" />
     <Compile Include="Program.fs" />
-    <None Include="StronglyTypedBowling.fsx" />
+    <None Include="Playground.fsx" />
     <None Include="App.config" />
   </ItemGroup>
   <PropertyGroup>
