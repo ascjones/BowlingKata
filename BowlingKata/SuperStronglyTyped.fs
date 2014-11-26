@@ -108,7 +108,7 @@ let score game =
         newScore,prevFrame,(Some frame)
 
     let scoreFinalFrame (score,prev2Frame,prevFrame) frame =
-        let normalFrame,bonus = 
+        let normalFrame,finalFrameScore = 
             match frame with
             | FinalFrame.Strike bonusRolls -> 
                 let strikeBonus = 
@@ -116,18 +116,18 @@ let score game =
                     | TwoStrikes -> 20
                     | BonusSpare -> 10
                     | StrikeBonusRolls.BonusPins combo -> combo |> comboSum
-                Frame.Strike,strikeBonus
+                Frame.Strike,10 + strikeBonus
             | FinalFrame.Spare (p,bonusRoll) ->
                 let spareBonus = 
                     match bonusRoll with
                     | SpareBonusRoll.BonusPins b -> b |> pins
                     | SpareBonusRoll.BonusStrike -> 10
-                Frame.Spare(p),spareBonus
+                Frame.Spare(p),10 + spareBonus
             | FinalFrame.Pins combo ->
                 Frame.Pins(combo),0
         
         let frameScore,_,_ = scoreFrame (score,prev2Frame,prevFrame) normalFrame
-        score + frameScore + bonus
+        frameScore + finalFrameScore
 
     let (>+) = scoreFrame
     let (|+) = scoreFinalFrame
@@ -184,7 +184,7 @@ let parseGame (game : string) =
         | SpareChar -> failwith "Cannot throw a spare with the first ball"
 
     let getFinalFrame i =
-        let remaining = scores |> Seq.skip (i+1) |> Seq.toList
+        let remaining = scores |> Seq.skip i |> Seq.toList
         match remaining with
         | [StrikeChar;   StrikeChar;   StrikeChar]       -> FinalFrame.Strike(StrikeBonusRolls.TwoStrikes)
         | [StrikeChar;   PinsChar(_);  SpareChar]        -> FinalFrame.Strike(StrikeBonusRolls.BonusSpare)
